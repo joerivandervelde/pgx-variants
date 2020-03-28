@@ -14,6 +14,7 @@ import org.molgenis.vcf.meta.VcfMeta;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.molgenis.pgx.tool.GenomeBuild.b37;
 import static org.molgenis.pgx.tool.GenomeBuild.b38;
@@ -123,9 +124,13 @@ public class Main {
         }
 
 
-        for(String key : pgxAllToSnp.keySet())
+        for(String allele : pgxAllToSnp.keySet())
         {
-            for(PgxSnp pgxs : pgxAllToSnp.get(key))
+            // for this allele, how many heterozyg SNPs observed for each sample
+            Map<String, AtomicInteger> sampleHetSnpCt = new HashMap<String, AtomicInteger>();
+            Map<String, AtomicInteger> sampleHomSnpCt = new HashMap<String, AtomicInteger>();
+
+            for(PgxSnp pgxs : pgxAllToSnp.get(allele))
             {
                 String tabixQ = pgxs.Chr + ":" + pgxs.Pos + "-" + pgxs.Pos;
 
@@ -184,27 +189,58 @@ public class Main {
                 //TODO test if sample name order is guarenteed
                 Iterator<VcfSample> vi = vr.getSamples().iterator();
                 VcfSample nextSample;
-                int idx = 0;
+                int sampleIndex = 0;
                 while(vi.hasNext())
                 {
+                    int altCount = 0;
                     for(Allele a: vi.next().getAlleles())
                     {
-                        // todo homozygous or heterozygous ???
-                        // TODO ALL SNPS MUST MATCH FOR ALLELE TO BE TRUE
-
                         if(a.getAlleleAsString().equalsIgnoreCase(pgxs.Alt))
                         {
-                            //sampleToPgx.get(sampleNames.get(idx)).add(pgxAllMap.get(pgxs.Allele).function + " for " + pgxAllMap.get(pgxs.Allele).molecule);
-                            sampleToPgx.get(sampleNames.get(idx)).add(pgxAllMap.get(pgxs.Allele).allele);
-                            break;
+                            altCount++;
                         }
                     }
-                    idx++;
+
+                    // todo phasing ??
+                    // count number of SNPs typing for this allele
+                    if(altCount == 1)
+                    {
+                        if(!sampleHetSnpCt.containsKey(sampleNames.get(sampleIndex))){
+                            sampleHetSnpCt.put(sampleNames.get(sampleIndex), new AtomicInteger(0));
+                        }
+                        sampleHetSnpCt.get(sampleNames.get(sampleIndex)).incrementAndGet();
+                    }
+                    else if(altCount == 2)
+                    {
+                        if(!sampleHomSnpCt.containsKey(sampleNames.get(sampleIndex))){
+                            sampleHomSnpCt.put(sampleNames.get(sampleIndex), new AtomicInteger(0));
+                        }
+                        sampleHomSnpCt.get(sampleNames.get(sampleIndex)).incrementAndGet();
+                    }
+                    sampleIndex++;
                 }
             }
 
-
-            
+            for(String sample : sampleHetSnpCt.keySet())
+            {
+                // if all SNPs that type this allele have been observed
+                // heterozygously, it counts as heterozygous allele
+                if(sampleHetSnpCt.get(sample).intValue() ==
+                        (pgxAllToSnp.get(allele).size()))
+                {
+                    sampleToPgx.get(sample).add(allele + " (HET), " + pgxAllMap.get(allele).function + " for " + pgxAllMap.get(allele).molecule);
+                }
+            }
+            for(String sample : sampleHomSnpCt.keySet())
+            {
+                // if all SNPs that type this allele have been observed
+                // homozygously, it counts as homozygously allele
+                if(sampleHomSnpCt.get(sample).intValue() ==
+                        (pgxAllToSnp.get(allele).size()))
+                {
+                    sampleToPgx.get(sample).add(allele + " (HOM), " + pgxAllMap.get(allele).function + " for " + pgxAllMap.get(allele).molecule);
+                }
+            }
         }
 
 
@@ -216,10 +252,11 @@ public class Main {
             {
                     sb.append(pgx + ", ");
             }
-            sb.delete(sb.length()-2, sb.length());
-            System.out.println(sample +" has PGx: " + sb.toString());
+            if(sb.length() > 0)
+            {
+                sb.delete(sb.length()-2, sb.length());
+                System.out.println(sample +" has PGx: " + sb.toString());
+            }
         }
-
-
     }
 }
