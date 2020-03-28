@@ -11,4 +11,8 @@ public class PgxSnp {
     public String SnpId;
     public String Ref;
     public String Alt;
+
+    @Override public String toString() {
+        return GenomeBuild + "\t" + Gene + "\t" + ChrId + "\t" + Allele + "\t" + PharmVarId + "\t" + Chr + "\t" + Pos + "\t" + SnpId + "\t" + Ref + "\t" + Alt;
+    }
 }

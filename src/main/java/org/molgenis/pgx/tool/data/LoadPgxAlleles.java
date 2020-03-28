@@ -43,8 +43,8 @@ public class LoadPgxAlleles {
                 continue;
             }
             String[] split = line.split("\t", -1);
-            PgxAllele pa = new PgxAllele(split[0], split[1], split[2]);
-            this.allList.add(pa);
+            PgxAllele pgxa = new PgxAllele(split[0], split[1], split[2]);
+            this.allList.add(pgxa);
         }
     }
 }

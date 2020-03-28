@@ -10,4 +10,8 @@ public class PgxAllele {
         this.function = function;
         this.molecule = molecule;
     }
+
+    @Override public String toString() {
+        return allele + "\t" + function + "\t" + molecule;
+    }
 }
