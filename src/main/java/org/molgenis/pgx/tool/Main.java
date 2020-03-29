@@ -12,7 +12,9 @@ import org.molgenis.vcf.VcfRecord;
 import org.molgenis.vcf.VcfSample;
 import org.molgenis.vcf.meta.VcfMeta;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,6 +37,7 @@ public class Main {
             System.out.println("- Output file location");
         }
 
+        // todo output may not exist etc
 
         File allF = new File("/Users/joeri/github/pgx-variants/data/pharmvar" +
                 "-alleles-function.txt");
@@ -45,7 +48,9 @@ public class Main {
                 "/1000G_diag_FDR/exome/ALL.chr1to22plusXYMT" +
                 ".phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes" +
                 ".snpEffNoIntergenicNoIntronic.exac.gonl.cadd.vcf.gz");
-        File out = new File("/Users/joeri/github/pgx-variants/data/TMP.tsv");
+        File out = new File("/Users/joeri/github/pgx-variants/data" +
+                "/1000G_phase3_NoIntergenicNoIntronic_PGx.tsv");
+
 
         // load snp data
         LoadPgxSnps lps = new LoadPgxSnps(snpF);
@@ -246,12 +251,15 @@ public class Main {
             }
         }
 
+        FileWriter fw = new FileWriter(out);
+        BufferedWriter bw = new BufferedWriter(fw);
+
 
         // print results
-        for(String sample : sampleToPgx.keySet()) {
-            if (sampleToPgx.get(sample).size() == 0) {
-                System.out.println(sample +
-                        " has not been positively genotyped for any pgx alleles.");
+        for(String sample : sampleNames) {
+            if (!sampleToPgx.containsKey(sample) || sampleToPgx.get(sample).size() == 0) {
+                bw.write(sample +
+                        " has not been positively genotyped for any pgx alleles." + "\n");
                 continue;
             }
 
@@ -271,7 +279,9 @@ public class Main {
                         "metabolize " +
                         pgxAllMap.get(pgx_no_gt).molecule + ". ");
             }
-            System.out.println(sb.toString());
+            bw.write(sb.toString() + "\n");
         }
+        bw.flush();
+        bw.close();
     }
 }
