@@ -21,6 +21,9 @@ import static org.molgenis.pgx.tool.GenomeBuild.b38;
 
 public class Main {
 
+    private final static String HETZYG = " (1 copy)";
+    private final static String HOMZYG = " (2 copies)";
+
     public static void main(String args[]) throws Exception {
         if(args.length != 5000)
         {
@@ -228,7 +231,7 @@ public class Main {
                 if(sampleHetSnpCt.get(sample).intValue() ==
                         (pgxAllToSnp.get(allele).size()))
                 {
-                    sampleToPgx.get(sample).add(allele + " (HET), " + pgxAllMap.get(allele).function + " for " + pgxAllMap.get(allele).molecule);
+                    sampleToPgx.get(sample).add(allele + HETZYG);
                 }
             }
             for(String sample : sampleHomSnpCt.keySet())
@@ -238,25 +241,37 @@ public class Main {
                 if(sampleHomSnpCt.get(sample).intValue() ==
                         (pgxAllToSnp.get(allele).size()))
                 {
-                    sampleToPgx.get(sample).add(allele + " (HOM), " + pgxAllMap.get(allele).function + " for " + pgxAllMap.get(allele).molecule);
+                    sampleToPgx.get(sample).add(allele + HOMZYG);
                 }
             }
         }
 
 
         // print results
-        for(String sample : sampleToPgx.keySet())
-        {
+        for(String sample : sampleToPgx.keySet()) {
+            if (sampleToPgx.get(sample).size() == 0) {
+                System.out.println(sample +
+                        " has not been positively genotyped for any pgx alleles.");
+                continue;
+            }
+
             sb = new StringBuffer();
-            for(String pgx : sampleToPgx.get(sample))
-            {
-                    sb.append(pgx + ", ");
+            sb.append(sample +
+                    " has been positively genotyped for pgx alleles: ");
+            for (String pgx : sampleToPgx.get(sample)) {
+                sb.append(pgx + ", ");
             }
-            if(sb.length() > 0)
-            {
-                sb.delete(sb.length()-2, sb.length());
-                System.out.println(sample +" has PGx: " + sb.toString());
+            sb.delete(sb.length() - 2, sb.length());
+            sb.append(". ");
+            for (String pgx : sampleToPgx.get(sample)) {
+                String pgx_no_gt = pgx.replace(HETZYG, "").replace(HOMZYG, "");
+                sb.append(pgx_no_gt + " has " +
+                        pgxAllMap.get(pgx_no_gt).function + " compared to " +
+                        "wild-type " + pgxAllMap.get(pgx_no_gt).gene + " to " +
+                        "metabolize " +
+                        pgxAllMap.get(pgx_no_gt).molecule + ". ");
             }
+            System.out.println(sb.toString());
         }
     }
 }
