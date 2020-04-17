@@ -1,5 +1,5 @@
 # pgx-variants
-A tool to extract pharmacogenomic associations from next-generation sequencing data. Currently, this is a proof-of-concept app only. Use only for demonstrative purposes.
+A tool to extract pharmacogenomic associations from next-generation sequencing data. Currently, this is a proof-of-concept. Use only for demonstrative purposes.
 
 ## How to compile
 Compile using Java 8+ with these dependencies:
@@ -12,13 +12,12 @@ org.molgenis:vcf-io:1.1.1
 
 Download the JAR, required data, a demo file, and run.
 ```
-wget <jar location>
+wget https://github.com/joerivandervelde/pgx-variants/releases/download/v0.0.1/pgx-variants-0.0.1.jar
 wget https://raw.githubusercontent.com/joerivandervelde/pgx-variants/master/data/pharmvar-4.1.4-snps.tsv
 wget https://raw.githubusercontent.com/joerivandervelde/pgx-variants/master/data/pv-4.1.4-pgkb28-03-2020-alleles.tsv
 wget https://github.com/joerivandervelde/pgx-variants/raw/master/data/b37demo.vcf.gz
 wget https://github.com/joerivandervelde/pgx-variants/raw/master/data/b37demo.vcf.gz.tbi
-java -jar pgx-variants-0.0.1.jar pharmvar-4.1.4-snps.tsv pv-4.1
-.4-pgkb28-03-2020-alleles.tsv b37 b37demo.vcf.gz b37demo_out.tsv
+java -jar pgx-variants-0.0.1.jar pharmvar-4.1.4-snps.tsv pv-4.1.4-pgkb28-03-2020-alleles.tsv b37 b37demo.vcf.gz b37demo_out.tsv
 ```
 
 Typical usage:
