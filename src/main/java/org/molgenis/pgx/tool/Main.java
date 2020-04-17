@@ -1,287 +1,69 @@
 package org.molgenis.pgx.tool;
 
-import org.molgenis.pgx.tool.data.LoadPgxAlleles;
-import org.molgenis.pgx.tool.data.LoadPgxSnps;
-import org.molgenis.pgx.tool.data.PgxAllele;
-import org.molgenis.pgx.tool.data.PgxSnp;
-import htsjdk.tribble.readers.TabixReader;
-import net.sf.samtools.util.BlockCompressedInputStream;
-import org.molgenis.genotype.Allele;
-import org.molgenis.vcf.VcfReader;
-import org.molgenis.vcf.VcfRecord;
-import org.molgenis.vcf.VcfSample;
-import org.molgenis.vcf.meta.VcfMeta;
-
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.molgenis.pgx.tool.GenomeBuild.b37;
-import static org.molgenis.pgx.tool.GenomeBuild.b38;
 
 public class Main {
 
-    private final static String HETZYG = " (1 copy)";
-    private final static String HOMZYG = " (2 copies)";
-
     public static void main(String args[]) throws Exception {
-        if(args.length != 5000)
+        if(args.length != 5)
         {
-            System.out.println("Please supply:");
-            System.out.println("- File location of 'pharmvar-4.1.4-snps.tsv'");
-            System.out.println("- File location of 'pharmvar-alleles-function.txt'");
-            System.out.println("- If you use genome build 37 or 38 ('b37' or 'b38')");
-            System.out.println("- File location of GZipped VCF to be analyzed");
-            System.out.println("- Output file location");
+            System.out.println("Please supply these 5 arguments:");
+            System.out.println("- File location of 'pharmvar-4.1.4-snps.tsv' (in pgx-variants/data/)'");
+            System.out.println("- File location of 'pv-4.1.4-pgkb28-03-2020-alleles.tsv' (in pgx-variants/data/)'");
+            System.out.println("- If you use genome build 37 or 38 (either 'b37' or 'b38')");
+            System.out.println("- File location of a GZipped VCF to be analyzed (ending in '.vcf.gz')");
+            System.out.println("- Output file location. May not exist yet.");
+            System.exit(0);
         }
 
-        // todo output may not exist etc
-
-        File allF = new File("/Users/joeri/github/pgx-variants/data/pharmvar" +
-                "-alleles-function.txt");
-        File snpF = new File("/Users/joeri/github/pgx-variants/data/pharmvar" +
-                "-4.1.4-snps.tsv");
-        GenomeBuild gb = b37;
-        File vcf = new File("/Users/joeri/Projects/GAVIN_Plus" +
-                "/1000G_diag_FDR/exome/ALL.chr1to22plusXYMT" +
-                ".phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes" +
-                ".snpEffNoIntergenicNoIntronic.exac.gonl.cadd.vcf.gz");
-        File out = new File("/Users/joeri/github/pgx-variants/data" +
-                "/1000G_phase3_NoIntergenicNoIntronic_PGx.tsv");
-
-
-        // load snp data
-        LoadPgxSnps lps = new LoadPgxSnps(snpF);
-        lps.load();
-        List<PgxSnp> pgxSnp = lps.retrieve();
-
-        // load allele data
-        LoadPgxAlleles lpa = new LoadPgxAlleles(allF);
-        lpa.load();
-        List<PgxAllele> pgxAll = lpa.retrieve();
-
-        System.out.println("Loaded " + pgxSnp.size() + " SNPs and " + pgxAll.size() + " allele-functions.");
-
-        // make hashmap of alleles with functional annotation
-        Map<String, PgxAllele> pgxAllMap = new HashMap<String, PgxAllele>();
-        for(PgxAllele pgxa : pgxAll)
+        File snpF = new File(args[0]);
+        if(!snpF.exists())
         {
-            pgxAllMap.put(pgxa.allele, pgxa);
+            System.out.println("Input SNP file not found at " + snpF.getAbsolutePath() + ". Suggesting to supply 'pharmvar-4.1.4-snps.tsv' (located in pgx-variants/data/).");
+            System.exit(0);
         }
 
-        // select only snps that have exact match with alleles-function
-        // to 'exclude' subtypes that add no further information
-        // also, select for genome build here
-        Map<String, List<PgxSnp>> pgxAllToSnp = new HashMap<String, List<PgxSnp>>();
-        int snpsForTyping = 0;
-        for(PgxSnp pgxs : pgxSnp)
+        File alleleF = new File(args[1]);
+        if(!alleleF.exists())
         {
-            // allele for this SNP is exactly present in allele-function
-            if(pgxAllMap.containsKey(pgxs.Allele) && ((gb == b37 && pgxs.GenomeBuild.equals("GRCh37")) || (gb == b38 && pgxs.GenomeBuild.equals("GRCh38"))))
-            {
-                // add empty list if this is the first SNP to be added
-                if(!pgxAllToSnp.containsKey(pgxs.Allele))
-                {
-                    pgxAllToSnp.put(pgxs.Allele, new ArrayList<PgxSnp>());
-                }
-                pgxAllToSnp.get(pgxs.Allele).add(pgxs);
-                snpsForTyping++;
-            }
+            System.out.println("Input alleles file not found at " + snpF.getAbsolutePath() + ". Suggesting to supply 'pharmvar-alleles-function.tsv' (located in pgx-variants/data/).");
+            System.exit(0);
         }
 
-        System.out.println("Going to type on " + snpsForTyping + " SNPs for " + pgxAllToSnp.size() + " alleles.");
-
-        // alleles without match
-        StringBuffer sb = new StringBuffer();
-        for(PgxAllele pgxa : pgxAll)
+        String gbS = args[2];
+        if(!gbS.equals("b37") && !gbS.equals("b38"))
         {
-            if(!pgxAllToSnp.containsKey(pgxa.allele)){
-                sb.append(pgxa.allele + ", ");
-            }
+            System.out.println("Genome build must be either 'b37' or 'b38' instead of "+ gbS+".");
+            System.exit(0);
         }
-        sb.delete(sb.length()-2, sb.length());
-        System.out.println("No match for: " + sb.toString() + ". These should" +
-                " be hybrid genes or full gene deletion haplotypes. Please check.");
+        GenomeBuild gb = GenomeBuild.valueOf(gbS);
 
-        // print overview
-//        for(String key : pgxAllToSnp.keySet())
-//        {
-//            System.out.println(key + ". Consequence: " + pgxAllMap.get(key).function +
-//                    ". Metabolizes: " + pgxAllMap.get(key).molecule);
-//            for(PgxSnp pgxs : pgxAllToSnp.get(key))
-//            {
-//                System.out.println("\t" + pgxs.toString());
-//            }
-//        }
-
-
-        // init vcf and tabix
-        TabixReader t = new TabixReader(vcf.getAbsolutePath());
-        BlockCompressedInputStream is = new BlockCompressedInputStream(vcf);
-        VcfReader r = new VcfReader(is);
-        VcfMeta vm = r.getVcfMeta();
-
-        // init output
-        Map<String, Set<String>> sampleToPgx = new HashMap<String, Set<String>>();
-        List<String> sampleNames = new ArrayList<String>();
-        for(String sample: vm.getSampleNames()){
-            sampleToPgx.put(sample, new HashSet<String>());
-            sampleNames.add(sample);
-        }
-
-
-        for(String allele : pgxAllToSnp.keySet())
+        File vcfInputF = new File(args[3]);
+        if(!vcfInputF.getName().endsWith(".vcf.gz"))
         {
-            // for this allele, how many heterozyg SNPs observed for each sample
-            Map<String, AtomicInteger> sampleHetSnpCt = new HashMap<String, AtomicInteger>();
-            Map<String, AtomicInteger> sampleHomSnpCt = new HashMap<String, AtomicInteger>();
-
-            for(PgxSnp pgxs : pgxAllToSnp.get(allele))
-            {
-                String tabixQ = pgxs.Chr + ":" + pgxs.Pos + "-" + pgxs.Pos;
-
-                TabixReader.Iterator tri = t.query(tabixQ);
-                String nextVcfLine;
-                VcfRecord vr = null;
-                while((nextVcfLine = tri.next()) != null)
-                {
-                    String[] split = nextVcfLine.split("\t", -1);
-                    if(!split[1].equals(pgxs.Pos))
-                    {
-                        continue;
-                    }
-                    if(!split[3].equals(pgxs.Ref))
-                    {
-                        System.out.println("Ref allele did not match for: " + pgxs.Chr +
-                                ":" + pgxs.Pos + ". Expected " + pgxs.Ref +
-                                ", found: " + split[3]);
-                        continue;
-                    }
-                    vr = new VcfRecord(vm, nextVcfLine.split("\t", -1));
-                }
-
-                if(vr == null)
-                {
-                    //System.out.println("Variant not present: " + pgxs.Chr +":" + pgxs.Pos);
-                    continue;
-                }
-
-                //System.out.println("variant found !!");
-
-                // not necessary since VCF-IO gives us the alleles as a string
-                // however - checking here saves time if allele is not present!
-                // TODO test
-                boolean altFound = false;
-                sb = new StringBuffer();
-                for(int i = 0; i < vr.getAlternateAlleles().size(); i ++)
-                {
-                    sb.append(vr.getAlternateAlleles().get(i).getAlleleAsString() + " ");
-                    if(pgxs.Alt.equalsIgnoreCase(vr.getAlternateAlleles().get(i).getAlleleAsString()))
-                    {
-                        altFound = true;
-                        break;
-                    }
-                }
-                if(!altFound)
-                {
-                    System.out.println("Alt allele not in VCF: " + pgxs.Chr +
-                            ":" + pgxs.Pos + ". Expected " + pgxs.Alt +
-                            ", found: " + sb.toString());
-                    continue;
-                }
-
-                // now that we have the correct variant in terms of chr, pos,
-                // ref, and at least 1 matching alt, we can match the genotypes
-                //TODO test if sample name order is guarenteed
-                Iterator<VcfSample> vi = vr.getSamples().iterator();
-                VcfSample nextSample;
-                int sampleIndex = 0;
-                while(vi.hasNext())
-                {
-                    int altCount = 0;
-                    for(Allele a: vi.next().getAlleles())
-                    {
-                        if(a.getAlleleAsString().equalsIgnoreCase(pgxs.Alt))
-                        {
-                            altCount++;
-                        }
-                    }
-
-                    // todo phasing ??
-                    // count number of SNPs typing for this allele
-                    if(altCount == 1)
-                    {
-                        if(!sampleHetSnpCt.containsKey(sampleNames.get(sampleIndex))){
-                            sampleHetSnpCt.put(sampleNames.get(sampleIndex), new AtomicInteger(0));
-                        }
-                        sampleHetSnpCt.get(sampleNames.get(sampleIndex)).incrementAndGet();
-                    }
-                    else if(altCount == 2)
-                    {
-                        if(!sampleHomSnpCt.containsKey(sampleNames.get(sampleIndex))){
-                            sampleHomSnpCt.put(sampleNames.get(sampleIndex), new AtomicInteger(0));
-                        }
-                        sampleHomSnpCt.get(sampleNames.get(sampleIndex)).incrementAndGet();
-                    }
-                    sampleIndex++;
-                }
-            }
-
-            for(String sample : sampleHetSnpCt.keySet())
-            {
-                // if all SNPs that type this allele have been observed
-                // heterozygously, it counts as heterozygous allele
-                if(sampleHetSnpCt.get(sample).intValue() ==
-                        (pgxAllToSnp.get(allele).size()))
-                {
-                    sampleToPgx.get(sample).add(allele + HETZYG);
-                }
-            }
-            for(String sample : sampleHomSnpCt.keySet())
-            {
-                // if all SNPs that type this allele have been observed
-                // homozygously, it counts as homozygously allele
-                if(sampleHomSnpCt.get(sample).intValue() ==
-                        (pgxAllToSnp.get(allele).size()))
-                {
-                    sampleToPgx.get(sample).add(allele + HOMZYG);
-                }
-            }
+            System.out.println("Input GZipped VCF file name '" + vcfInputF.getName() + "' does not end in '.vcf.gz'. Are you sure this is a valid input?");
+            System.exit(0);
+        }
+        if(!vcfInputF.exists())
+        {
+            System.out.println("Input GZipped VCF file not found at " + vcfInputF.getAbsolutePath()+".");
+            System.exit(0);
         }
 
-        FileWriter fw = new FileWriter(out);
-        BufferedWriter bw = new BufferedWriter(fw);
-
-
-        // print results
-        for(String sample : sampleNames) {
-            if (!sampleToPgx.containsKey(sample) || sampleToPgx.get(sample).size() == 0) {
-                bw.write(sample +
-                        " has not been positively genotyped for any pgx alleles." + "\n");
-                continue;
-            }
-
-            sb = new StringBuffer();
-            sb.append(sample +
-                    " has been positively genotyped for pgx alleles: ");
-            for (String pgx : sampleToPgx.get(sample)) {
-                sb.append(pgx + ", ");
-            }
-            sb.delete(sb.length() - 2, sb.length());
-            sb.append(". ");
-            for (String pgx : sampleToPgx.get(sample)) {
-                String pgx_no_gt = pgx.replace(HETZYG, "").replace(HOMZYG, "");
-                sb.append(pgx_no_gt + " has " +
-                        pgxAllMap.get(pgx_no_gt).function + " compared to " +
-                        "wild-type " + pgxAllMap.get(pgx_no_gt).gene + " to " +
-                        "metabolize " +
-                        pgxAllMap.get(pgx_no_gt).molecule + ". ");
-            }
-            bw.write(sb.toString() + "\n");
+        File outputF = new File(args[4]);
+        if(outputF.exists())
+        {
+            System.out.println("Output file already exists at " + outputF.getAbsolutePath()+". Please delete it first, or supply a different output file name.");
+            System.exit(0);
         }
-        bw.flush();
-        bw.close();
+
+        System.out.println("Arguments OK. Starting...");
+        long start = System.nanoTime();
+
+        PGxTool pgxt = new PGxTool(snpF, alleleF, gb, vcfInputF, outputF);
+        pgxt.run();
+
+        System.out.println("...completed in " + ((System.nanoTime()-start)/1000000)+"ms.");
+
     }
 }
