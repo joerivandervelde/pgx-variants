@@ -17,7 +17,8 @@ wget https://raw.githubusercontent.com/joerivandervelde/pgx-variants/master/data
 wget https://raw.githubusercontent.com/joerivandervelde/pgx-variants/master/data/pv-4.1.4-pgkb28-03-2020-alleles.tsv
 wget https://github.com/joerivandervelde/pgx-variants/raw/master/data/b37demo.vcf.gz
 wget https://github.com/joerivandervelde/pgx-variants/raw/master/data/b37demo.vcf.gz.tbi
-java -jar pgx-variants-0.0.1.jar pharmvar-4.1.4-snps.tsv pv-4.1.4-pgkb28-03-2020-alleles.tsv b37 b37demo.vcf.gz b37demo_out.tsv
+java -jar pgx-variants-0.0.1.jar pharmvar-4.1.4-snps.tsv \
+pv-4.1.4-pgkb28-03-2020-alleles.tsv b37 b37demo.vcf.gz b37demo_out.tsv
 ```
 
 Typical usage:
