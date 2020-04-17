@@ -1,5 +1,9 @@
 # pgx-variants
-A tool to extract pharmacogenomic associations from next-generation sequencing data. Currently, this is a proof-of-concept. Use only for demonstrative purposes.
+A tool to extract pharmacogenomic associations from next-generation 
+sequencing data. Currently, this is a proof-of-concept. Use only for 
+demonstrative purposes. We thank the main data source of pgx-variants: 
+Pharmacogene Variation Consortium (PharmVar) at www.PharmVar.org (Gaedigk et 
+al. 2018, CPT 103:399; Gaedigk et al. 2019, CPT 105:29).
 
 ## How to compile
 Compile using Java 8+ with these dependencies:
