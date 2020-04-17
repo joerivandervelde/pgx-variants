@@ -121,10 +121,6 @@ public class PGxTool {
             sampleNames.add(sample);
         }
 
-        // FIXME TMP!!
-        FileWriter fw2 = new FileWriter(new File("/Users/joeri/github/pgx-variants/data/variants.vcf"));
-        BufferedWriter bw2 = new BufferedWriter(fw2);
-
         for(String allele : pgxAllToSnp.keySet())
         {
             // for this allele, how many heterozyg SNPs observed for each sample
@@ -160,8 +156,6 @@ public class PGxTool {
                     System.out.println("Variant not present: " + pgxs.Chr +":" + pgxs.Pos);
                     continue;
                 }
-
-                bw2.write(vr.toString() + "\n"); //FIXME TMP
 
                 // not necessary since VCF-IO gives us the alleles as a string
                 // however - checking here saves time if allele is not present!
@@ -275,8 +269,5 @@ public class PGxTool {
         }
         bw.flush();
         bw.close();
-
-        //FIXME TMP
-        bw2.flush();bw2.close();
     }
 }
