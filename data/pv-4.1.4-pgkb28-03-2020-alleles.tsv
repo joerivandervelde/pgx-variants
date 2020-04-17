@@ -1,6 +1,6 @@
-## manually taken from https://www.pharmvar.org/genes
-## Allele and FunctionChange: PharmVar, Version 4.1.4 Last Updated Feb 14 2020
-## Metabolizes: https://www.pharmgkb.org, Clinical Annotations on Gene, all evidence levels
+## manually taken from https://www.pharmvar.org/genes and https://www.pharmgkb.org
+## Allele and Function: PharmVar, Version 4.1.4, last updated Feb 14 2020
+## Molecule: PharmGKB, accessed 28 march 2020, Clinical Annotations on Gene, all evidence levels
 #Allele	Function	Molecule
 CYP2A13*7.001	CYP2A13	no function	nicotine
 CYP2B6*4	CYP2B6	increased function	mirtazapine, efavirenz, propofol, nicotine, cotinine, nevirapine, bupropion, 3,4-methylenedioxymethamphetamine, antivirals for treatment of HIV infections, drugs for treatment of tuberculosis, clopidogrel, methadone, ethambutol, isoniazid, pyrazinamide, rifampin, imatinib, ketamine, cyclophosphamide, doxorubicin, mitotane
