@@ -43,6 +43,7 @@ patho/to/my/output.tsv
 ## To do
 - Unit and integration testing
 - Proper dependency management
+- Report missing and negative markers
 - Proper cmdline option parsing
 - Consider phasing when genotyping
 - Check how to handle allele dosage
